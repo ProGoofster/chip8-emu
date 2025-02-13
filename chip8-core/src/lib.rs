@@ -273,6 +273,39 @@ impl Chip8 {
                 self.v_regs[x] = rng & nn;
             },
 
+            (0xD,_,_,_) => {
+                //coords
+                let x_coord = self.v_regs[digit2 as usize] as u16;
+                let y_coord = self.v_regs[digit3 as usize] as u16;
+                //height
+                let num_rows = digit4;
+                let mut flipped = false;
+
+                for y_line in 0..num_rows {
+                    let addr = self.i_reg + y_line as u16;
+                    let pixels = self.ram[addr as usize];
+                    for x_line in 0..8 {
+                        if (pixels & (0b1000_0000 >> x_line)) != 0 {
+                            //Sprites wrap around screen
+                            let x = (x_coord + x_line) as usize % SCREEN_WIDTH;
+                            let y = (y_coord + y_line) as usize % SCREEN_WIDTH;
+
+                            //need to figure out the logic of this
+                            //this could be a failure point because I
+                            //implemented the screen differently
+                            flipped |= self.screen[x][y];
+                            self.screen[x][y] ^= true;
+                        }
+                    }
+                }
+
+                if flipped {
+                    self.v_regs[0xF] = 1;
+                } else {
+                    self.v_regs[0xF] = 0;
+                }
+            },
+
 
             (_,_,_,_) => unimplemented!("Unimplemented opcode {}", op),
         }
