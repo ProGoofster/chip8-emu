@@ -22,6 +22,7 @@ pub struct Chip8 {
 }
 
 impl Chip8 {
+    //constructor
     pub fn new() -> Self {
         Self {
             pc: START_ADDR,
@@ -35,5 +36,15 @@ impl Chip8 {
             dt: 0,
             st: 0,
         }
+    }
+
+    fn push(&mut self, val: u16) {
+        self.stack[self.sp as usize] = val;
+        self.sp += 1;
+    }
+
+    fn pop(&mut self) -> u16 {
+        self.sp -= 1;
+        self.stack[self.sp as usize] //return is not needed when the returned value is last.
     }
 }
