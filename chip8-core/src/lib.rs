@@ -334,7 +334,7 @@ impl Chip8 {
             },
 
             // wait for key press
-            (0xf, _, 0, 0xA) => {
+            (0xF, _, 0, 0xA) => {
                 let x = digit2 as usize;
                 let mut pressed = false;
                 let mut i: usize = 0;
@@ -346,6 +346,18 @@ impl Chip8 {
                     i = (i + 1) % self.keys.len();
                 }
             },
+
+            // set delay timer
+            (0xF, _, 1, 5) => {
+                let x = digit2 as usize;
+                self.dt = self.v_regs[x];
+            }
+
+            // set sound timer
+            (0xF, _, 1, 8) => {
+                let x = digit2 as usize;
+                self.st = self.v_regs[x];
+            }
 
             (_,_,_,_) => unimplemented!("Unimplemented opcode {}", op),
         }
