@@ -273,12 +273,15 @@ impl Chip8 {
                 self.v_regs[x] = rng & nn;
             },
 
+            // draw
+            // maybe rewrite it since I don't fully understand it
             (0xD,_,_,_) => {
                 //coords
                 let x_coord = self.v_regs[digit2 as usize] as u16;
                 let y_coord = self.v_regs[digit3 as usize] as u16;
                 //height
                 let num_rows = digit4;
+
                 let mut flipped = false;
 
                 for y_line in 0..num_rows {
@@ -305,7 +308,44 @@ impl Chip8 {
                     self.v_regs[0xF] = 0;
                 }
             },
+            
+            // skip if key pressed
+            (0xE, _, 9, 0xE) => {
+                let x = digit2 as usize;
+                
+                if self.keys[self.v_regs[x] as usize] {
+                    self.pc += 2;
+                }
+            },
 
+            // skip if key not pressed
+            (0xE, _, 0xA, 1) => {
+                let x = digit2 as usize;
+                
+                if !self.keys[self.v_regs[x] as usize] {
+                    self.pc += 2;
+                }
+            },
+
+            // get delay
+            (0xF, _, 0, 7) => {
+                let x = digit2 as usize;
+                self.v_regs[x] = self.dt;
+            },
+
+            // wait for key press
+            (0xf, _, 0, 0xA) => {
+                let x = digit2 as usize;
+                let mut pressed = false;
+                let mut i: usize = 0;
+                while !pressed {
+                    if self.keys[i] {
+                        pressed = true;
+                        self.v_regs[x] = i as u8;
+                    }
+                    i = (i + 1) % self.keys.len();
+                }
+            },
 
             (_,_,_,_) => unimplemented!("Unimplemented opcode {}", op),
         }
