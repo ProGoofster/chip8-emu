@@ -351,13 +351,61 @@ impl Chip8 {
             (0xF, _, 1, 5) => {
                 let x = digit2 as usize;
                 self.dt = self.v_regs[x];
-            }
+            },
 
             // set sound timer
             (0xF, _, 1, 8) => {
                 let x = digit2 as usize;
                 self.st = self.v_regs[x];
-            }
+            },
+
+            // load sprite data to I
+            (0xF, _, 1, 0xE) => {
+                let x = digit2 as usize;
+                let vx = self.v_regs[x] as u16;
+                self.i_reg = self.i_reg.wrapping_add(vx);
+            },
+            
+            // set I to font address
+            (0xF, _, 2, 9) => {
+                let x = digit2 as usize;
+                let c = self.v_regs[x] as u16;
+                self.i_reg = c * 5;
+            },
+
+            // store BCD from VX into I
+            (0xF, _, 3, 3) => {
+                let x = digit2 as usize;
+                let vx = self.v_regs[x] as f32;
+
+                let hundreds = (vx / 100.0).floor() as u8;
+                let tens = ((vx / 10.0) % 10.0).floor() as u8;
+                let ones = (vx % 10.0) as u8;
+
+                self.ram[self.i_reg as usize] = hundreds;
+                self.ram[(self.i_reg + 1) as usize] = tens;
+                self.ram[(self.i_reg + 2) as usize] = ones;
+            },
+
+            // store V0 to VX into memory starting at I
+            (0xF, _, 5, 5) => {
+                let x = digit2 as usize;
+                let i = self.i_reg as usize;
+                for idx in 0..=x {
+                    self.ram[i + idx] = self.v_regs[idx];
+                }
+                self.i_reg += digit2 + 1;
+            },
+
+            // Fill V0 to VX with values loaded from memory starting with I
+            (0xF, _, 6, 5) => {
+                let x = digit2 as usize;
+                let i = self.i_reg as usize;
+                for idx in 0..=x {
+                    self.v_regs[idx] = self.ram[i + idx];
+                }
+                self.i_reg += digit2 + 1;
+            },
 
             (_,_,_,_) => unimplemented!("Unimplemented opcode {}", op),
         }
