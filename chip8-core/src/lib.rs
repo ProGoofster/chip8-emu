@@ -1,3 +1,5 @@
+use rand::random;
+
 //screen size.
 pub const SCREEN_WIDTH: usize = 64;
 pub const SCREEN_HEIGHT: usize = 32;
@@ -123,6 +125,155 @@ impl Chip8 {
         let digit4 = op & 0x000F;
 
         match (digit1, digit2, digit3, digit4) {
+            //NO OP
+            (0,0,0,0) => return,
+            // clear
+            (0,0,0xE,0) => self.screen = [[false; SCREEN_WIDTH]; SCREEN_HEIGHT],
+            // return
+            (0,0,0xE,0xE) => self.pc = self.pop(),
+            // jump NNN
+            (1,_,_,_) => self.pc = op & 0xFFF,
+            // call NNN
+            (2,_,_,_) => {
+                self.push(self.pc);
+                self.pc = op & 0xFFF;
+            },
+            // if vx != NN
+            // skip if vx == nn
+            (3,_,_,_) => {
+                let x = digit2 as usize;
+                let nn = (op & 0xFF) as u8;
+                if self.v_regs[x] == nn {self.pc += 2}
+            },
+            // if vx == NN
+            // skip if vx != nn
+            (4,_,_,_) => {
+                let x = digit2 as usize;
+                let nn = (op & 0xFF) as u8;
+                if self.v_regs[x] == nn {self.pc += 2}
+            },
+            // if vx != vy
+            // skip if vx == vy
+            (5,_,_,_) => {
+                let x = digit2 as usize;
+                let y = digit3 as usize;
+                if self.v_regs[x] == self.v_regs[y] {self.pc += 2}
+            },
+
+            // vx = nn
+            (6,_,_,_) => {
+                let x = digit2 as usize;
+                let nn = (op & 0xFF) as u8;
+                self.v_regs[x] = nn;
+            },
+
+            // vx += nn
+            (7,_,_,_) => {
+                let x = digit2 as usize;
+                let nn = (op & 0xFF) as u8;
+                self.v_regs[x] += nn;
+            },
+
+            // vx = vy
+            (8,_,_,0) => {
+                let x = digit2 as usize;
+                let y = digit3 as usize;
+                self.v_regs[x] += self.v_regs[y];
+            },
+            // vx |= vy
+            (8,_,_,1) => {
+                let x = digit2 as usize;
+                let y = digit3 as usize;
+                self.v_regs[x] |= self.v_regs[y];
+            },
+            // vx &= vy
+            (8,_,_,2) => {
+                let x = digit2 as usize;
+                let y = digit3 as usize;
+                self.v_regs[x] &= self.v_regs[y];
+            },
+            // vx ^= vy
+            (8,_,_,3) => {
+                let x = digit2 as usize;
+                let y = digit3 as usize;
+                self.v_regs[x] ^= self.v_regs[y];
+            },
+            // vx += vy
+            (8,_,_,4) => {
+                let x = digit2 as usize;
+                let y = digit3 as usize;
+
+                let (new_vx, carry) = self.v_regs[x].overflowing_add(self.v_regs[y]);
+                
+                self.v_regs[x] = new_vx;
+                self.v_regs[0xF] = carry as u8;
+            },
+            // vx -= vy
+            (8,_,_,5) => {
+                let x = digit2 as usize;
+                let y = digit3 as usize;
+
+                let (new_vx, carry) = self.v_regs[x].overflowing_sub(self.v_regs[y]);
+                
+                self.v_regs[x] = new_vx;
+                self.v_regs[0xF] = !carry as u8;
+            },
+            // vx = vy >> 1 right shift
+            (8,_,_,6) => {
+                let x = digit2 as usize;
+                let y = digit3 as usize;
+                let dropped_bit = self.v_regs[y] & 1;
+
+                self.v_regs[x] = self.v_regs[y] >> 1;
+                self.v_regs[0xF] = dropped_bit;
+            },
+            // vx = vy - vx
+            (8,_,_,7) => {
+                let x = digit2 as usize;
+                let y = digit3 as usize;
+
+                let (new_vx, carry) = self.v_regs[y].overflowing_sub(self.v_regs[x]);
+                
+                self.v_regs[x] = new_vx;
+                self.v_regs[0xF] = !carry as u8;
+            },
+            // vx = vy << 1 left shift
+            (8,_,_,0xE) => {
+                let x = digit2 as usize;
+                let y = digit3 as usize;
+                let dropped_bit = (self.v_regs[y] >> 7) & 1;
+
+                self.v_regs[x] = self.v_regs[y] << 1;
+                self.v_regs[0xF] = dropped_bit;
+            },
+            // if vx == vy
+            // skip if vx != vy
+            (9,_,_,0) => {
+                let x = digit2 as usize;
+                let y = digit3 as usize;
+                if self.v_regs[x] != self.v_regs[y] {self.pc += 2}
+            },
+
+            // i = nnn
+            (0xA,_,_,_) => {
+                let nnn = op & 0xFFF;
+                self.i_reg = nnn;
+            },
+
+            // jump to nnn + v0
+            (0xB,_,_,_) => {
+                let nnn = op & 0xFFF;
+                self.pc = (self.v_regs[0] as u16) + nnn;
+            },
+
+            (0xC,_,_,_) => {
+                let x = digit2 as usize;
+                let nn = (op & 0xFF) as u8;
+                let rng: u8 = random();
+                self.v_regs[x] = rng & nn;
+            },
+
+
             (_,_,_,_) => unimplemented!("Unimplemented opcode {}", op),
         }
     }
