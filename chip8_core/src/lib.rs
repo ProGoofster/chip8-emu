@@ -101,6 +101,28 @@ impl Chip8 {
         }
     }
 
+    pub fn get_display(&self) -> &[[bool; 64]; 32] {
+        &self.screen
+    }
+
+    pub fn set_key(&mut self, idx: usize, pressed: bool) {
+        self.keys[idx] = pressed;
+    }
+
+    pub fn press_key(&mut self, idx: usize) {
+        self.set_key(idx, true);
+    }
+
+    pub fn release_key(&mut self, idx: usize) {
+        self.set_key(idx, false);
+    }
+
+    pub fn load(&mut self, data: &[u8]) {
+        let start = START_ADDR as usize;
+        let end = (START_ADDR as usize) + data.len();
+        self.ram[start..end].copy_from_slice(data);
+    }
+
     fn push(&mut self, val: u16) {
         self.stack[self.sp as usize] = val;
         self.sp += 1;
