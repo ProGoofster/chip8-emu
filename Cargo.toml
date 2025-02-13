@@ -1,0 +1,7 @@
+[workspace]
+
+members = [
+    "chip8_core",
+    "chip8_desktop_frontend"
+]
+resolver = "2"
